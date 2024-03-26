@@ -15,7 +15,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// The commandId parameter must match the command field in package.json
 	let isActived = true;
 		
-	let switcher = vscode.commands.registerCommand('copy-on-click.copy-on-click-switch', function () {
+	let activeSwitcher = vscode.commands.registerCommand('copy-on-click.copy-on-click-active-switch', function () {
 		isActived = !isActived;
 		if (isActived){
 			vscode.window.showInformationMessage('copy-on-click is actived');
@@ -24,32 +24,84 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
+	let operaterType = 1;
+	let operaterStep = 1;
+	let operaterSwitcher = vscode.commands.registerCommand('copy-on-click.copy-on-click-operate-switch', function () {
+		if (isActived){
+			operaterStep=1;
+			switch (operaterType) {
+				case 1:
+					operaterType++
+					vscode.window.showInformationMessage('copy-paste-paste');
+					break;
+				case 2:
+					operaterType=1
+					vscode.window.showInformationMessage('copy-paste');
+					break;
+			}
+		}
+	});
+
 	let disposable = vscode.commands.registerCommand('copy-on-click.copy-on-click', () => {
 		// The code you place here will be executed every time your command is executed
 		// Display a message box to the user
-		let operaterStep = 1;
 		// vscode.window.showInformationMessage('copy-on-click registerCommand');
 		let clickTime = 0;
 		vscode.window.onDidChangeTextEditorSelection(e => {
 			if (isActived){
+				// 防双击
+				let currentTime = new Date().getTime();
+				if (currentTime - clickTime < 200) {
+					console.log('Double click detected');
+					return
+				}
+				clickTime = currentTime;
+
 				const editor = vscode.window.activeTextEditor;
 				if (editor) {
-					// copy
 					const document = editor.document;
 					const selection = editor.selection;
 					const wordRange = document.getWordRangeAtPosition(selection.active);
 					if (wordRange) {
-						// 防双击
-						let currentTime = new Date().getTime();
-						if (currentTime - clickTime < 500) {
-							console.log('Double click detected');
-							return
+						switch (operaterType) {
+							case 1:
+								if (operaterStep==1){
+									// copy
+									const word = document.getText(wordRange);
+									vscode.env.clipboard.writeText(word);
+									operaterStep++
+								}else{
+									// delete
+									editor.edit(editBuilder => {
+										editBuilder.delete(wordRange);
+									});
+									// paste
+									vscode.commands.executeCommand('editor.action.clipboardPasteAction');
+									operaterStep=1
+								}
+								break
+							case 2:
+								if (operaterStep==1){
+									// copy
+									const word = document.getText(wordRange);
+									vscode.env.clipboard.writeText(word);
+								}else if (operaterStep==2 || operaterStep==3){
+									// delete
+									editor.edit(editBuilder => {
+										editBuilder.delete(wordRange);
+									});
+									// paste
+									vscode.commands.executeCommand('editor.action.clipboardPasteAction');
+								}
+								operaterStep++;
+								if (operaterStep==4){
+									operaterStep=1
+								}
+								break;
 						}
-						clickTime = currentTime;
-						// paste
-						vscode.commands.executeCommand('editor.action.clipboardPasteAction');
+						
 
-						// copy paste paste
+						// // copy paste paste
 						// if (operaterStep==1){
 						// 	// copy
 						// 	const word = document.getText(wordRange);
@@ -75,7 +127,7 @@ export function activate(context: vscode.ExtensionContext) {
 		});
 	});
 
-	context.subscriptions.push(switcher,disposable);
+	context.subscriptions.push(activeSwitcher,operaterSwitcher,disposable);
 }
 
 // This method is called when your extension is deactivated

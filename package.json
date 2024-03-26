@@ -19,8 +19,11 @@
       }
     ],
     "keybindings":[{
-      "command": "copy-on-click.copy-on-click-switch",
+      "command": "copy-on-click.copy-on-click-active-switch",
       "key": "ctrl+alt+p"
+    },{
+      "command": "copy-on-click.copy-on-click-operate-switch",
+      "key": "ctrl+alt+l"
     }]
   },
   "scripts": {
